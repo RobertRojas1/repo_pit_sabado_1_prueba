@@ -1,113 +1,73 @@
 package com.empresa.controller;
 
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 
+import org.apache.commons.logging.Log;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Controller;
-import org.springframework.util.CollectionUtils;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.bind.annotation.RestController;
 
 import com.empresa.entity.Alumno;
 import com.empresa.service.AlumnoService;
-import com.empresa.util.Constantes;
+//import com.sun.el.stream.Optional;
 
-@Controller
+
+import lombok.extern.apachecommons.CommonsLog;
+
+//@CommonsLog
+@CommonsLog
+@RestController
+@RequestMapping("/rest/Alumno")
 public class AlumnoController {
-
+	
 	@Autowired
 	private AlumnoService service;
-
-	@RequestMapping("/verCrudAlumno")
-	public String verInicio() {
-		return "crudAlumno";
+	
+	@GetMapping
+	public ResponseEntity<List<Alumno>> lista(){
+		log.info(">>> lista");
+		return ResponseEntity.ok(service.listaAlumno());
 	}
 	
-	@ResponseBody
-	@RequestMapping("/consultaCrudAlumno")
-	public List<Alumno> lista(String filtro) {
-		return service.listaAlumnoPorNombreLike(filtro.trim() + "%");
+	@PostMapping
+	public ResponseEntity<Alumno> registra(@RequestBody Alumno obj){
+		log.info(">>> registra " + obj.getIdAlumno()); 
+		return ResponseEntity.ok(service.insertaActualizaAlumno(obj));
 	}
 	
-	
-	
-	@ResponseBody
-	@RequestMapping("/registraCrudAlumno")
-	public Map<String, Object> registra(Alumno obj){
-		Map<String, Object> salida = new HashMap<>();
-		try {
-			List<Alumno> lstAlumno = service.buscaPorDni(obj.getDni());
-			if (CollectionUtils.isEmpty(lstAlumno)) {
-				Alumno objSalida = service.insertaActualizaAlumno(obj);
-				if (objSalida  == null) {
-					salida.put("mensaje", Constantes.MENSAJE_REG_ERROR);
-				}else {
-					salida.put("mensaje", Constantes.MENSAJE_REG_EXITOSO);
-				}
-			}else {
-				salida.put("mensaje", Constantes.MENSAJE_DNI_YA_EXISTE + obj.getDni()); 
-			}
-		} catch (Exception e) {
-			e.printStackTrace();
-			salida.put("mensaje", Constantes.MENSAJE_REG_ERROR);
-		} finally {
-			List<Alumno> lista = service.listaAlumno();
-			salida.put("lista", lista);
+	@PutMapping
+	public ResponseEntity<Alumno> actualiza(@RequestBody Alumno obj){
+		log.info(">>> actualiza " + obj.getIdAlumno()); 
+		Optional<Alumno> optAlumno = service.obtienePorId(obj.getIdAlumno());
+		if(optAlumno.isPresent()) {
+			return ResponseEntity.ok(service.insertaActualizaAlumno(obj));
+		}else {
+			return ResponseEntity.notFound().build();
 		}
-		return salida;
 	}
-
 	
-	@ResponseBody
-	@RequestMapping("/eliminaCrudAlumno")
-	public Map<String, Object> elimina(int id){
-		Map<String, Object> salida = new HashMap<>();
-		try {
-			Optional<Alumno> optAlumno = service.obtienePorId(id);
-			if (optAlumno.isPresent()) {
-				service.eliminaAlumno(id);
-				salida.put("mensaje", Constantes.MENSAJE_ELI_EXITOSO);
-			}else {
-				salida.put("mensaje", Constantes.MENSAJE_ELI_ERROR);	
-			}
-		} catch (Exception e) {
-			e.printStackTrace();
-			salida.put("mensaje", Constantes.MENSAJE_ELI_ERROR);
-		} finally {
-			List<Alumno> lista = service.listaAlumno();
-			salida.put("lista", lista);
+	
+	
+	@DeleteMapping("/{id}")
+	public ResponseEntity<Alumno> elimina(@PathVariable("id") int idAlumno){
+		log.info(">>> elimina " + idAlumno); 
+		Optional<Alumno> optAlumno = service.obtienePorId(idAlumno);
+		if(optAlumno.isPresent()) {
+			service.eliminaAlumno(idAlumno);
+			return ResponseEntity.ok(optAlumno.get());
+		}else {
+			log.error(">>> elimina " + idAlumno + "no encontrado");
+			return ResponseEntity.notFound().build();
 		}
-		return salida;
 	}
 	
 
-	@ResponseBody
-	@RequestMapping("/actualizaCrudAlumno")
-	public Map<String, Object> actualiza(Alumno obj){
-		Map<String, Object> salida = new HashMap<>();
-		try {
-			List<Alumno> lstAlumno = service.buscaPorDni(obj.getDni(), obj.getIdAlumno());
-			if (CollectionUtils.isEmpty(lstAlumno)) {
-				Alumno objSalida = service.insertaActualizaAlumno(obj);
-				if (objSalida  == null) {
-					salida.put("mensaje", Constantes.MENSAJE_ACT_ERROR);
-				}else {
-					salida.put("mensaje", Constantes.MENSAJE_ACT_EXITOSO);
-				}
-			}else {
-				salida.put("mensaje", Constantes.MENSAJE_DNI_YA_EXISTE + obj.getDni()); 
-			}
-		} catch (Exception e) {
-			e.printStackTrace();
-			salida.put("mensaje", Constantes.MENSAJE_ACT_ERROR);
-		} finally {
-			List<Alumno> lista = service.listaAlumno();
-			salida.put("lista", lista);
-		}
-		return salida;
-	}
-	
 }
